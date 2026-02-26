@@ -2,7 +2,7 @@
 编排器 - 协调多个 Agent 完成复杂任务
 """
 
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 import time
@@ -25,7 +25,7 @@ class Task:
     description: str
     assigned_to: Optional[str] = None
     status: TaskStatus = TaskStatus.PENDING
-    result: any = None
+    result: Any = None
     error: Optional[str] = None
 
 
@@ -40,10 +40,10 @@ class Orchestrator:
     - 结果聚合
     """
     
-    def __init__(self, agents: Optional[list[Agent]] = None):
-        self.agents: dict[str, Agent] = {}
+    def __init__(self, agents: Optional[List[Agent]] = None):
+        self.agents: Dict[str, Agent] = {}
         self.message_bus = MessageBus()
-        self.tasks: list[Task] = []
+        self.tasks: List[Task] = []
         
         # 注册 Agent
         if agents:
@@ -68,7 +68,7 @@ class Orchestrator:
         self.tasks.append(task)
         return task
     
-    def run(self, task_description: str, strategy: str = "auto") -> any:
+    def run(self, task_description: str, strategy: str = "auto") -> Any:
         """
         执行任务
         
@@ -88,7 +88,7 @@ class Orchestrator:
         else:
             return self._auto_assign(task_description)
     
-    def _auto_assign(self, task_description: str) -> any:
+    def _auto_assign(self, task_description: str) -> Any:
         """自动分配任务给最合适的 Agent"""
         # 简单实现：选择空闲的 Agent
         for agent in self.agents.values():
@@ -99,7 +99,7 @@ class Orchestrator:
         print("[Orchestrator] 警告：没有可用的 Agent")
         return None
     
-    def _round_robin_task(self, task_description: str) -> any:
+    def _round_robin_task(self, task_description: str) -> Any:
         """轮询分配任务"""
         if not self.agents:
             return None
@@ -114,7 +114,7 @@ class Orchestrator:
         print(f"[Orchestrator] 轮询分配给 {agent.name}")
         return agent.execute_task(task_description)
     
-    def _broadcast_task(self, task_description: str) -> dict:
+    def _broadcast_task(self, task_description: str) -> Dict:
         """广播任务给所有 Agent"""
         results = {}
         for name, agent in self.agents.items():
@@ -122,7 +122,7 @@ class Orchestrator:
             results[name] = agent.execute_task(task_description)
         return results
     
-    def run_parallel(self, tasks: list[tuple[str, str]]) -> dict:
+    def run_parallel(self, tasks: List[tuple]) -> Dict:
         """
         并行执行多个任务
         
@@ -149,7 +149,7 @@ class Orchestrator:
         
         return results
     
-    def run_sequence(self, tasks: list[tuple[str, str]]) -> list:
+    def run_sequence(self, tasks: List[tuple]) -> List:
         """
         顺序执行多个任务
         
@@ -166,7 +166,7 @@ class Orchestrator:
                 results.append((agent_name, f"Error: Agent '{agent_name}' not found"))
         return results
     
-    def get_status(self) -> dict:
+    def get_status(self) -> Dict:
         """获取编排器状态"""
         return {
             "agents": {

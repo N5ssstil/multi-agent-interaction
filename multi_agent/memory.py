@@ -2,7 +2,7 @@
 记忆系统 - Agent 的记忆和状态管理
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict
 from dataclasses import dataclass, field
 from datetime import datetime
 import json
@@ -14,7 +14,7 @@ class MemoryEntry:
     content: Any
     entry_type: str = "general"  # general, message, task, observation
     timestamp: datetime = field(default_factory=datetime.now)
-    metadata: dict = field(default_factory=dict)
+    metadata: Dict = field(default_factory=dict)
 
 
 class Memory:
@@ -29,10 +29,10 @@ class Memory:
         self.max_short_term = max_short_term
         
         # 短期记忆（最近的活动）
-        self.short_term: list[MemoryEntry] = []
+        self.short_term: List[MemoryEntry] = []
         
         # 长期记忆（重要信息）
-        self.long_term: list[MemoryEntry] = []
+        self.long_term: List[MemoryEntry] = []
     
     def add(self, content: Any, entry_type: str = "general", **metadata) -> None:
         """添加记忆"""
@@ -63,11 +63,11 @@ class Memory:
             entry_type="observation",
         )
     
-    def get_recent(self, n: int = 10) -> list[MemoryEntry]:
+    def get_recent(self, n: int = 10) -> List[MemoryEntry]:
         """获取最近的记忆"""
         return self.short_term[-n:]
     
-    def search(self, query: str) -> list[MemoryEntry]:
+    def search(self, query: str) -> List[MemoryEntry]:
         """搜索记忆（简单字符串匹配）"""
         results = []
         for entry in self.short_term + self.long_term:
@@ -82,7 +82,7 @@ class Memory:
         """清空短期记忆"""
         self.short_term.clear()
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict:
         """导出为字典"""
         return {
             "agent_id": self.agent_id,
@@ -106,8 +106,8 @@ class SharedMemory:
     """
     
     def __init__(self):
-        self.data: dict[str, Any] = {}
-        self.history: list[tuple[str, Any, datetime]] = []
+        self.data: Dict[str, Any] = {}
+        self.history: List[tuple] = []
     
     def set(self, key: str, value: Any) -> None:
         """设置共享数据"""
@@ -130,17 +130,17 @@ class SharedMemory:
             return True
         return False
     
-    def keys(self) -> list[str]:
+    def keys(self) -> List[str]:
         """获取所有键"""
         return list(self.data.keys())
     
-    def get_history(self, key: Optional[str] = None) -> list:
+    def get_history(self, key: Optional[str] = None) -> List:
         """获取历史记录"""
         if key:
             return [(k, v, t) for k, v, t in self.history if k == key]
         return self.history.copy()
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict:
         """导出为字典"""
         return {
             "data": self.data.copy(),

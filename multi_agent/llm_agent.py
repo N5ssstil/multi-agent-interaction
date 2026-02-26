@@ -4,7 +4,7 @@ LLM Agent 实现 - 接入真实的 LLM API
 
 import os
 import json
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, List, Dict
 from dataclasses import dataclass
 
 try:
@@ -64,7 +64,7 @@ class LLMAgent(Agent):
         self._init_client()
         
         # 对话历史
-        self.conversation_history: list[dict] = []
+        self.conversation_history: List[Dict] = []
     
     def _init_client(self):
         """初始化 LLM 客户端"""
@@ -113,7 +113,7 @@ class LLMAgent(Agent):
         except Exception as e:
             return f"[{self.name}] 调用 LLM 失败: {e}"
     
-    def _build_messages(self, user_input: str) -> list[dict]:
+    def _build_messages(self, user_input: str) -> List[Dict]:
         """构建消息列表"""
         messages = []
         

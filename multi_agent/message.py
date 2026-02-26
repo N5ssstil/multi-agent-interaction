@@ -2,7 +2,7 @@
 消息系统 - Agent 之间的通信机制
 """
 
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict, Callable, List, Dict, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
@@ -55,9 +55,9 @@ class MessageBus:
     """
     
     def __init__(self):
-        self.agents: dict[str, "Agent"] = {}  # type: ignore
-        self.history: list[Message] = []
-        self.hooks: list[callable] = []
+        self.agents: Dict[str, "Agent"] = {}  # type: ignore
+        self.history: List[Message] = []
+        self.hooks: List[Callable] = []
     
     def register(self, agent: "Agent") -> None:  # type: ignore
         """注册 Agent"""
@@ -96,11 +96,11 @@ class MessageBus:
             if name != message.sender:
                 agent.receive(message)
     
-    def add_hook(self, hook: callable) -> None:
+    def add_hook(self, hook: Callable) -> None:
         """添加消息钩子"""
         self.hooks.append(hook)
     
-    def get_history(self, agent_name: Optional[str] = None) -> list[Message]:
+    def get_history(self, agent_name: Optional[str] = None) -> List[Message]:
         """获取消息历史"""
         if agent_name:
             return [
