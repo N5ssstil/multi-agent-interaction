@@ -2,7 +2,7 @@
 Agent 基类 - 定义智能代理的核心接口
 """
 
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 import uuid
@@ -30,7 +30,7 @@ class AgentConfig:
     model: str = "gpt-4"
     max_tokens: int = 4096
     temperature: float = 0.7
-    tools: list[str] = field(default_factory=list)
+    tools: List[str] = field(default_factory=list)
 
 
 class Agent:
@@ -61,7 +61,7 @@ class Agent:
         self.state = AgentState.IDLE
         self.memory = Memory(agent_id=self.id)
         self.tools = ToolRegistry()
-        self.inbox: list[Message] = []
+        self.inbox: List[Message] = []
         
         # 配置
         self.config = config or AgentConfig(
@@ -108,7 +108,7 @@ class Agent:
         )
         self.message_bus.broadcast(message)
     
-    def process_inbox(self) -> list[Message]:
+    def process_inbox(self) -> List[Message]:
         """处理收件箱中的消息"""
         processed = []
         while self.inbox:

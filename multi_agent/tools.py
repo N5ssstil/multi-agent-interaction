@@ -2,7 +2,7 @@
 工具系统 - Agent 可以使用的工具
 """
 
-from typing import Callable, Any
+from typing import Callable, Any, Dict, List, Optional
 from dataclasses import dataclass
 import inspect
 
@@ -13,13 +13,13 @@ class Tool:
     name: str
     function: Callable
     description: str
-    parameters: dict  # JSON Schema 格式的参数定义
+    parameters: Dict  # JSON Schema 格式的参数定义
     
     def execute(self, **kwargs) -> Any:
         """执行工具"""
         return self.function(**kwargs)
     
-    def to_openai_format(self) -> dict:
+    def to_openai_format(self) -> Dict:
         """转换为 OpenAI Function Calling 格式"""
         return {
             "type": "function",
@@ -39,7 +39,7 @@ class ToolRegistry:
     """
     
     def __init__(self):
-        self.tools: dict[str, Tool] = {}
+        self.tools: Dict[str, Tool] = {}
     
     def register(
         self, 
@@ -75,15 +75,15 @@ class ToolRegistry:
             raise ValueError(f"工具 '{name}' 未找到")
         return tool.execute(**kwargs)
     
-    def list_tools(self) -> list[str]:
+    def list_tools(self) -> List[str]:
         """列出所有工具"""
         return list(self.tools.keys())
     
-    def to_openai_tools(self) -> list[dict]:
+    def to_openai_tools(self) -> List[Dict]:
         """转换为 OpenAI tools 格式"""
         return [tool.to_openai_format() for tool in self.tools.values()]
     
-    def _infer_parameters(self, func: Callable) -> dict:
+    def _infer_parameters(self, func: Callable) -> Dict:
         """从函数签名推断参数定义"""
         sig = inspect.signature(func)
         properties = {}
