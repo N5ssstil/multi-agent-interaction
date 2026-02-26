@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Interaction</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🤖</span>
+                <span class="logo-text">Multi-Agent</span>
+            </div>
+            <div class="status">
+                <span class="status-dot" :class="{ connected: wsConnected }"></span>
+                <span>{{ wsConnected ? '已连接' : '断开连接' }}</span>
+            </div>
+        </header>
+
+        <main class="main">
+            <!-- 左侧: Agent 列表 -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Agents</h2>
+                    <button class="btn-icon" @click="showCreateAgent = true">+</button>
+                </div>
+                
+                <div class="agent-list">
+                    <div 
+                        v-for="agent in agents" 
+                        :key="agent.name"
+                        class="agent-card"
+                        :class="{ active: selectedAgent === agent.name }"
+                        @click="selectAgent(agent.name)"
+                    >
+                        <div class="agent-avatar">{{ agent.name.charAt(0) }}</div>
+                        <div class="agent-info">
+                            <div class="agent-name">{{ agent.name }}</div>
+                            <div class="agent-role">{{ agent.role }}</div>
+                        </div>
+                        <div class="agent-status" :class="agent.state"></div>
+                    </div>
+                </div>
+
+                <!-- 快速创建 Agent -->
+                <div class="quick-create" v-if="showCreateAgent">
+                    <div class="modal-overlay" @click="showCreateAgent = false"></div>
+                    <div class="modal">
+                        <h3>创建新 Agent</h3>
+                        <form @submit.prevent="createAgent">
+                            <div class="form-group">
+                                <label>名称</label>
+                                <input v-model="newAgent.name" placeholder="Agent 名称" required>
+                            </div>
+                            <div class="form-group">
+                                <label>角色</label>
+                                <input v-model="newAgent.role" placeholder="如: 研究员、撰写者">
+                            </div>
+                            <div class="form-group">
+                                <label>描述</label>
+                                <textarea v-model="newAgent.description" placeholder="描述这个 Agent 的职责"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>类型</label>
+                                <select v-model="newAgent.agent_type">
+                                    <option value="basic">基础 Agent</option>
+                                    <option value="llm">LLM Agent</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" @click="showCreateAgent = false">取消</button>
+                                <button type="submit" class="btn-primary">创建</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间: 消息和交互区 -->
+            <section class="content">
+                <!-- 消息流 -->
+                <div class="messages" ref="messagesContainer">
+                    <div v-if="messages.length === 0" class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <p>还没有消息，开始创建 Agent 并发送消息吧！</p>
+                    </div>
+                    
+                    <div 
+                        v-for="(msg, index) in messages" 
+                        :key="index"
+                        class="message"
+                        :class="{ 'message-me': msg.sender === selectedAgent }"
+                    >
+                        <div class="message-header">
+                            <span class="message-sender">{{ msg.sender }}</span>
+                            <span class="message-receiver" v-if="msg.receiver !== 'all'">→ {{ msg.receiver }}</span>
+                            <span class="message-receiver" v-else>→ 全部</span>
+                        </div>
+                        <div class="message-content">{{ msg.content }}</div>
+                        <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+                    </div>
+                </div>
+
+                <!-- 输入区 -->
+                <div class="input-area">
+                    <div class="input-row">
+                        <select v-model="messageReceiver" class="receiver-select">
+                            <option value="all">广播给所有</option>
+                            <option v-for="agent in agents" :key="agent.name" :value="agent.name">
+                                发送给 {{ agent.name }}
+                            </option>
+                        </select>
+                        <input 
+                            v-model="messageInput" 
+                            @keyup.enter="sendMessage"
+                            placeholder="输入消息..."
+                            class="message-input"
+                        >
+                        <button class="btn-send" @click="sendMessage">发送</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧: 任务和控制面板 -->
+            <aside class="panel">
+                <!-- 任务执行 -->
+                <div class="panel-section">
+                    <h3>任务执行</h3>
+                    <div class="task-input">
+                        <textarea v-model="taskInput" placeholder="输入要执行的任务..."></textarea>
+                        <div class="task-actions">
+                            <select v-model="taskAgent">
+                                <option value="">选择 Agent</option>
+                                <option v-for="agent in agents" :key="agent.name" :value="agent.name">
+                                    {{ agent.name }}
+                                </option>
+                            </select>
+                            <button class="btn-primary" @click="executeTask" :disabled="!taskAgent || !taskInput">
+                                执行
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 编排器 -->
+                <div class="panel-section">
+                    <h3>编排器</h3>
+                    <div class="orchestrator">
+                        <textarea v-model="orchestratorTask" placeholder="输入复杂任务，编排器会自动分配给合适的 Agent..."></textarea>
+                        <select v-model="orchestratorStrategy">
+                            <option value="auto">自动分配</option>
+                            <option value="broadcast">广播任务</option>
+                            <option value="round_robin">轮询分配</option>
+                        </select>
+                        <button class="btn-primary" @click="runOrchestrator">执行编排</button>
+                    </div>
+                </div>
+
+                <!-- 活动日志 -->
+                <div class="panel-section">
+                    <h3>活动日志</h3>
+                    <div class="logs">
+                        <div v-for="(log, index) in activityLogs" :key="index" class="log-item" :class="log.type">
+                            <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+                            <span class="log-message">{{ log.message }}</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
